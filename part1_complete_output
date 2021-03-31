@@ -1,0 +1,29 @@
+
+-------Output for addr-blocked.ref---------
+Counts:
+  Instructions 24615577
+  Loads 4425078
+  Stores 1241078
+  Modifies 40030
+
+-------Output for addr-matmul.ref---------
+Counts:
+  Instructions 24283604
+  Loads 7371149
+  Stores 1170623
+  Modifies 40030
+
+-------Output for addr-repeatloop.ref---------
+Counts:
+  Instructions 662155
+  Loads 120435
+  Stores 30290
+  Modifies 24
+
+
+-------Output for addr-simpleloop.ref---------
+Counts:
+  Instructions 120412
+  Loads 50092
+  Stores 10066
+  Modifies 10006
