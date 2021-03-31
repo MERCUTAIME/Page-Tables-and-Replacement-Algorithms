@@ -34,9 +34,9 @@ void freeNode(pagelst *root, pagelst *node)
     free(root);
 }
 /* Print all the instruction address*/
-void print_instr(pagelst *node, bool index)
+int print_instr(pagelst *node, bool index)
 {
-
+    int count = 0;
     while (node != NULL)
     {
         if (node->traces[index] != 0)
@@ -46,6 +46,7 @@ void print_instr(pagelst *node, bool index)
             {
                 if (node->page[c] != 0)
                 {
+                    count += 1;
                     printf("0x%s,%d\n", (node->page) + c, node->traces[index]);
                     break;
                 }
@@ -54,6 +55,7 @@ void print_instr(pagelst *node, bool index)
         }
         node = node->next;
     }
+    return count;
 }
 void print_data(pagelst *root, int *output)
 {
@@ -64,10 +66,12 @@ void print_data(pagelst *root, int *output)
     printf("  Modifies %d\n\n", output[3]);
     printf("Instructions:\n");
     pagelst *node = root;
-    print_instr(node, 0);
+    int count = print_instr(node, 0);
+    printf("Number of Instruction pages: %d\n", count);
     node = root;
     printf("Data:\n");
-    print_instr(node, 1);
+    count = print_instr(node, 1);
+    printf("Number of Data pages: %d\n", count);
     freeNode(root, node);
 }
 

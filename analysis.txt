@@ -20,6 +20,9 @@ Counts:
   Stores 1241078
   Modifies 40030
 
+Number of Instruction pages: 32
+Number of Data pages: 961
+
 Instructions:
   0x00108000,23492322
   0x04c73000,253
@@ -59,6 +62,10 @@ Counts:
   Loads 7371149
   Stores 1170623
   Modifies 40030
+  
+Number of Instruction pages: 32
+Number of Data pages: 961
+
 Instructions:
   0x00108000,23300797
   0x04c73000,136
@@ -98,6 +105,12 @@ Counts:
   Loads 120435
   Stores 30290
   Modifies 24
+
+
+Number of Instruction pages: 23
+Number of Data pages: 76
+
+
 Instructions:
   0x00108000,660080
   0x04c73000,278
@@ -129,6 +142,9 @@ Counts:
   Loads 50092
   Stores 10066
   Modifies 10006
+
+Number of Instruction pages: 7
+Number of Data pages: 2511
 
 Instructions:
   0x00108000,120032
