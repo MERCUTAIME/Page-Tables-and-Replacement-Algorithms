@@ -32,6 +32,23 @@ size_t ref_count = 0;
 size_t evict_clean_count = 0;
 size_t evict_dirty_count = 0;
 
+void error_checking(bool error, const char *err_msg)
+{
+	if (error)
+	{
+		fprintf(stderr, "%s", err_msg);
+		exit(-1);
+	}
+}
+void reset_bit(size_t flag1, pt_entry_t *pg_ptr)
+{
+	size_t pg_flags[2] = {flag1, PAGE_DIRTY};
+	for (int k = 0; k < 2; k++)
+	{
+		pg_ptr->frame &= (~pg_flags[k]);
+	}
+}
+
 /*
  * Allocates a frame to be used for the virtual page represented by p.
  * If all frames are in use, calls the replacement algorithm's evict_func to
@@ -44,23 +61,42 @@ size_t evict_dirty_count = 0;
 static int allocate_frame(pt_entry_t *pte)
 {
 	int frame = -1;
-	for (size_t i = 0; i < memsize; ++i) {
-		if (!coremap[i].in_use) {
+	for (size_t i = 0; i < memsize; ++i)
+	{
+		if (!coremap[i].in_use)
+		{
 			frame = i;
 			break;
 		}
 	}
 
-	if (frame == -1) { // Didn't find a free page.
+	if (frame == -1)
+	{ // Didn't find a free page.
 		// Call replacement algorithm's evict function to select victim
 		frame = evict_func();
-		assert(frame != -1);
 
 		// All frames were in use, so victim frame must hold some page
 		// Write victim page to swap, if needed, and update page table
 
-		// IMPLEMENTATION NEEDED
+		pt_entry_t *page_victim = coremap[frame].pte;
+		//Check if valid bit is assigned
+		error_checking(!(page_victim->frame & PAGE_VALID), "Not a Valid bit\n");
+		bool flag = (PAGE_DIRTY & page_victim->frame);
+		//Update the event counter
 
+		evict_clean_count += (int)!flag;
+		evict_dirty_count += (int)flag;
+		if (flag)
+		{
+			unsigned int pg_shift = (unsigned int)page_victim->frame >> PAGE_SHIFT;
+			off_t sw_os = swap_pageout(pg_shift, (int)page_victim->swap_offset);
+			error_checking(sw_os == INVALID_SWAP, "Swapping page out failed");
+			page_victim->swap_offset = sw_os;
+		}
+		//Reset the bit for valid and dirty bit back to 0
+		reset_bit(PAGE_VALID, page_victim);
+		//Assign swap bit to 1
+		page_victim->frame |= PAGE_ONSWAP;
 	}
 
 	// Record information for virtual page that will now be stored in frame
@@ -84,8 +120,9 @@ void init_page_tables(void)
 {
 	// Set all entries in top-level page table to 0, which ensures valid
 	// bits are all 0 initially.
-	for (size_t i = 0; i < PTRS_PER_PDPT; ++i) {
-		pdpt[i].pdp = 0;// sets all bits, including valid, to zero
+	for (size_t i = 0; i < PTRS_PER_PDPT; ++i)
+	{
+		pdpt[i].pdp = 0; // sets all bits, including valid, to zero
 	}
 }
 
@@ -95,14 +132,16 @@ static pdpt_entry_t init_page_directory(void)
 	pd_entry_t *pd;
 	// Allocating aligned memory ensures the low bits in the pointer must
 	// be zero, so we can use them to store our status bits, like PAGE_VALID
-	if (posix_memalign((void **)&pd, PAGE_SIZE, PTRS_PER_PD * sizeof(pd_entry_t)) != 0) {
+	if (posix_memalign((void **)&pd, PAGE_SIZE, PTRS_PER_PD * sizeof(pd_entry_t)) != 0)
+	{
 		perror("Failed to allocate aligned memory for page directory");
 		exit(1);
 	}
 
 	// Initialize all entries in second-level page table
-	for (size_t i = 0; i < PTRS_PER_PD; ++i) {
-		pd[i].pde = 0;// sets all bits, including valid, to zero
+	for (size_t i = 0; i < PTRS_PER_PD; ++i)
+	{
+		pd[i].pde = 0; // sets all bits, including valid, to zero
 	}
 
 	pdpt_entry_t new_entry;
@@ -118,14 +157,16 @@ static pd_entry_t init_page_table(void)
 	pt_entry_t *pt;
 	// Allocating aligned memory ensures the low bits in the pointer must
 	// be zero, so we can use them to store our status bits, like PAGE_VALID
-	if (posix_memalign((void **)&pt, PAGE_SIZE, PTRS_PER_PT * sizeof(pt_entry_t)) != 0) {
+	if (posix_memalign((void **)&pt, PAGE_SIZE, PTRS_PER_PT * sizeof(pt_entry_t)) != 0)
+	{
 		perror("Failed to allocate aligned memory for page table");
 		exit(1);
 	}
 
 	// Initialize all entries in third-level page table
-	for (size_t i = 0; i < PTRS_PER_PT; ++i) {
-		pt[i].frame = 0;// sets all bits, including valid, to zero
+	for (size_t i = 0; i < PTRS_PER_PT; ++i)
+	{
+		pt[i].frame = 0; // sets all bits, including valid, to zero
 		pt[i].swap_offset = INVALID_SWAP;
 	}
 
@@ -152,7 +193,7 @@ static void init_frame(int frame, vaddr_t vaddr)
 	vaddr_t *vaddr_ptr = (vaddr_t *)(mem_ptr + sizeof(size_t));
 
 	memset(mem_ptr, 0, SIMPAGESIZE); // zero-fill the frame
-	*vaddr_ptr = vaddr & PAGE_MASK;  // record the vaddr for error checking
+	*vaddr_ptr = vaddr & PAGE_MASK;	 // record the vaddr for error checking
 }
 
 /*
@@ -170,35 +211,62 @@ static void init_frame(int frame, vaddr_t vaddr)
  */
 char *find_physpage(vaddr_t vaddr, char type)
 {
-	pt_entry_t *pte = NULL;// Pointer to the page table entry for vaddr
-
+	pt_entry_t *pte = NULL; // Pointer to the page table entry for vaddr
+	unsigned idx = PD_INDEX(vaddr);
 	// To keep compiler happy - remove when you have a real use
-	(void)vaddr;
-	(void)type;
-	(void)allocate_frame;
-	(void)init_page_directory;
-	(void)init_page_table;
-	(void)init_frame;
 
 	// IMPLEMENTATION NEEDED
 
 	// Use top-level page table and vaddr to get pointer to 2nd-level page table
+	pdpt[idx] = pdpt[idx].pdp == 0 ? init_page_directory() : pdpt[idx];
 
+	uintptr_t top_dir = pdpt[idx].pdp;
+	unsigned ind = PT_INDEX(vaddr);
+	pd_entry_t *second_tbl = (pd_entry_t *)(top_dir & PAGE_MASK) + ind;
 
 	// Use 2nd-level page table and vaddr to get pointer to 3rd-level page table
-
+	second_tbl[idx] = second_tbl[idx].pde == 0 ? init_page_table() : second_tbl[idx];
+	uintptr_t tbl = second_tbl[idx].pde;
 
 	// Use 3rd-level page table and vaddr to get pointer to page table entry
 
+	//Should change here
+	ind = PT_INDEX(vaddr);
+	pte = (pt_entry_t *)(tbl & PAGE_MASK) + ind;
 
 	// Check if pte is valid or not, on swap or not, and handle appropriately
 	// (Note that the first acess to a page should be marked DIRTY)
+	bool flag = (pte->frame & PAGE_VALID);
+	//Update the event counter
+	hit_count += (int)flag;
+	miss_count += (int)!flag;
+	//Check if Valid or not
+	if (!(pte->frame & PAGE_VALID))
+	{
+		int frame = allocate_frame(pte);
+		//Check if on swap or not
+		if (!(pte->frame & PAGE_ONSWAP))
+		{
+			init_frame(frame, vaddr);
+			pte->frame = (frame << PAGE_SHIFT);
+			pte->frame |= PAGE_DIRTY;
+		}
+		else
+		{
+			//handle error checking for swapping
+			error_checking(swap_pagein(frame, pte->swap_offset) != 0, "Attempting to swap page in\n");
+			pte->frame = (frame << PAGE_SHIFT);
+			reset_bit(PAGE_ONSWAP, pte);
+		}
+	}
 
-
+	ref_count++;
 	// Make sure that pte is marked valid and referenced. Also mark it
 	// dirty if the access type indicates that the page will be written to.
 
-
+	pte->frame |= PAGE_REF;
+	pte->frame |= PAGE_VALID;
+	pte->frame |= (type == 'S' || type == 'M') ? PAGE_DIRTY : PAGE_VALID;
 	// Call replacement algorithm's ref_func for this page
 	ref_func(pte);
 
@@ -206,40 +274,50 @@ char *find_physpage(vaddr_t vaddr, char type)
 	return &physmem[(pte->frame >> PAGE_SHIFT) * SIMPAGESIZE];
 }
 
-
 static void print_page_table(pt_entry_t *pt)
 {
 	int first_invalid = -1, last_invalid = -1;
 
-	for (int i = 0; i < PTRS_PER_PT; ++i) {
-		if (!(pt[i].frame & PAGE_VALID) && !(pt[i].frame & PAGE_ONSWAP)) {
-			if (first_invalid == -1) {
+	for (int i = 0; i < PTRS_PER_PT; ++i)
+	{
+		if (!(pt[i].frame & PAGE_VALID) && !(pt[i].frame & PAGE_ONSWAP))
+		{
+			if (first_invalid == -1)
+			{
 				first_invalid = i;
 			}
 			last_invalid = i;
-		} else {
-			if (first_invalid != -1) {
+		}
+		else
+		{
+			if (first_invalid != -1)
+			{
 				printf("\t\t[%d] - [%d]: INVALID\n",
-				       first_invalid, last_invalid);
+					   first_invalid, last_invalid);
 				first_invalid = last_invalid = -1;
 			}
 			printf("\t\t[%d]: ", i);
-			if (pt[i].frame & PAGE_VALID) {
+			if (pt[i].frame & PAGE_VALID)
+			{
 				printf("VALID, ");
-				if (pt[i].frame & PAGE_DIRTY) {
+				if (pt[i].frame & PAGE_DIRTY)
+				{
 					printf("DIRTY, ");
 				}
 				int framenum = pt[i].frame >> PAGE_SHIFT;
 				char *page = &physmem[framenum * SIMPAGESIZE];
 				printf("in frame %d, version %zu, vaddr %zu\n", framenum,
-				       *(size_t *)page, *(vaddr_t *)(page + sizeof(size_t)));
-			} else {
+					   *(size_t *)page, *(vaddr_t *)(page + sizeof(size_t)));
+			}
+			else
+			{
 				assert(pt[i].frame & PAGE_ONSWAP);
 				printf("ONSWAP, at offset %lu\n", (unsigned long)pt[i].swap_offset);
 			}
 		}
 	}
-	if (first_invalid != -1) {
+	if (first_invalid != -1)
+	{
 		printf("\t\t[%d] - [%d]: INVALID\n", first_invalid, last_invalid);
 		first_invalid = last_invalid = -1;
 	}
@@ -249,16 +327,22 @@ static void print_page_directory(pd_entry_t *pd)
 {
 	int first_invalid = -1, last_invalid = -1;
 
-	for (int i = 0; i < PTRS_PER_PD; ++i) {
-		if (!(pd[i].pde & PAGE_VALID)) {
-			if (first_invalid == -1) {
+	for (int i = 0; i < PTRS_PER_PD; ++i)
+	{
+		if (!(pd[i].pde & PAGE_VALID))
+		{
+			if (first_invalid == -1)
+			{
 				first_invalid = i;
 			}
 			last_invalid = i;
-		} else {
-			if (first_invalid != -1) {
+		}
+		else
+		{
+			if (first_invalid != -1)
+			{
 				printf("\t[%d]: INVALID\n  to\n[%d]: INVALID\n",
-				       first_invalid, last_invalid);
+					   first_invalid, last_invalid);
 				first_invalid = last_invalid = -1;
 			}
 			pt_entry_t *pt = (pt_entry_t *)(pd[i].pde & PAGE_MASK);
@@ -272,16 +356,22 @@ void print_page_tables(void)
 {
 	int first_invalid = -1, last_invalid = -1;
 
-	for (int i = 0; i < PTRS_PER_PDPT; ++i) {
-		if (!(pdpt[i].pdp & PAGE_VALID)) {
-			if (first_invalid == -1) {
+	for (int i = 0; i < PTRS_PER_PDPT; ++i)
+	{
+		if (!(pdpt[i].pdp & PAGE_VALID))
+		{
+			if (first_invalid == -1)
+			{
 				first_invalid = i;
 			}
 			last_invalid = i;
-		} else {
-			if (first_invalid != -1) {
+		}
+		else
+		{
+			if (first_invalid != -1)
+			{
 				printf("[%d]: INVALID\n  to\n[%d]: INVALID\n",
-				       first_invalid, last_invalid);
+					   first_invalid, last_invalid);
 				first_invalid = last_invalid = -1;
 			}
 			pd_entry_t *pd = (pd_entry_t *)(pdpt[i].pdp & PAGE_MASK);
@@ -291,15 +381,18 @@ void print_page_tables(void)
 	}
 }
 
-
 void free_page_tables(void)
 {
-	for (int i = 0; i < PTRS_PER_PDPT; ++i) {
-		if (pdpt[i].pdp & PAGE_VALID) {
+	for (int i = 0; i < PTRS_PER_PDPT; ++i)
+	{
+		if (pdpt[i].pdp & PAGE_VALID)
+		{
 			pd_entry_t *pd = (pd_entry_t *)(pdpt[i].pdp & PAGE_MASK);
 
-			for (int j = 0; j < PTRS_PER_PD; ++j) {
-				if (pd[j].pde & PAGE_VALID) {
+			for (int j = 0; j < PTRS_PER_PD; ++j)
+			{
+				if (pd[j].pde & PAGE_VALID)
+				{
 					pt_entry_t *pt = (pt_entry_t *)(pd[j].pde & PAGE_MASK);
 					free(pt);
 				}

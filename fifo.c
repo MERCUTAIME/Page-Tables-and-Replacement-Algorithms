@@ -15,6 +15,9 @@
 #include "pagetable.h"
 #include "sim.h"
 
+extern size_t memsize;
+
+static int pt;
 
 /* Page to evict is chosen using the FIFO algorithm.
  * Returns the page frame number (which is also the index in the coremap)
@@ -22,8 +25,9 @@
  */
 int fifo_evict(void)
 {
-	//TODO
-	return -1;
+	int prev = pt;
+	pt = (pt == (int)memsize - 1) ? 0 : 1 + pt;
+	return prev;
 }
 
 /* This function is called on each access to a page to update any information
@@ -33,17 +37,15 @@ int fifo_evict(void)
 void fifo_ref(pt_entry_t *pte)
 {
 	(void)pte;
-	//TODO
 }
 
 /* Initialize any data structures needed for this replacement algorithm. */
 void fifo_init(void)
 {
-	//TODO
+	pt = 0;
 }
 
 /* Cleanup any data structures created in fifo_init(). */
 void fifo_cleanup(void)
 {
-	//TODO
 }

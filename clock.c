@@ -15,6 +15,9 @@
 #include "pagetable.h"
 #include "sim.h"
 
+static int pt;
+extern size_t sizes;
+extern struct frame *coremap;
 
 /* Page to evict is chosen using the CLOCK algorithm.
  * Returns the page frame number (which is also the index in the coremap)
@@ -22,8 +25,26 @@
  */
 int clock_evict(void)
 {
-	//TODO
-	return -1;
+	int m = (int)memsize;
+	int ev;
+	pt_entry_t *ptes = coremap[pt].pte;
+	bool isUpdate = false;
+	while (!isUpdate)
+	{
+		if (!(ptes->frame & PAGE_REF))
+		{
+			int result = pt;
+			ev = result;
+			isUpdate = true;
+			goto updatePt;
+		}
+		pt = pt != m - 1 ? pt + 1 : 0;
+		ptes->frame &= ~PAGE_REF;
+	}
+updatePt:
+	pt = pt != m - 1 ? pt + 1 : 0;
+
+	return ev;
 }
 
 /* This function is called on each access to a page to update any information
@@ -32,18 +53,18 @@ int clock_evict(void)
  */
 void clock_ref(pt_entry_t *pte)
 {
-	(void)pte;
-	//TODO
+	// Set the page frame to be referenced
+	// Set bit field to 1
+	pte->frame |= PAGE_REF;
 }
 
 /* Initialize any data structures needed for this replacement algorithm. */
 void clock_init(void)
 {
-	//TODO
+	pt = (int)false;
 }
 
 /* Cleanup any data structures created in clock_init(). */
 void clock_cleanup(void)
 {
-	//TODO
 }

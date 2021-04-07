@@ -20,7 +20,6 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-
 // User-level virtual addresses on a 64-bit Linux system are 48 bits in our
 // traces, and the page size is 4096 (12 bits). We split the remaining 36 bits
 // evenly into 3 parts, using 12 bits for each:
@@ -33,57 +32,63 @@
 //   PDPT index    PD index     PT index    page offset
 
 #define PAGE_SHIFT 12
-#define PAGE_SIZE  4096
-#define PAGE_MASK  (~(PAGE_SIZE - 1))
+#define PAGE_SIZE 4096
+#define PAGE_MASK (~(PAGE_SIZE - 1))
 
-#define PAGE_VALID  0x1 // Valid bit in pdp or pde or pte, set if in memory
-#define PAGE_DIRTY  0x2 // Dirty bit in pte, set if page has been modified
-#define PAGE_REF    0x4 // Reference bit in pte, set if page has been referenced
+#define PAGE_VALID 0x1	// Valid bit in pdp or pde or pte, set if in memory
+#define PAGE_DIRTY 0x2	// Dirty bit in pte, set if page has been modified
+#define PAGE_REF 0x4	// Reference bit in pte, set if page has been referenced
 #define PAGE_ONSWAP 0x8 // Set if page has been evicted to swap
 
-#define PT_SHIFT   12 // Leaves top 36 bits of vaddr
-#define PD_SHIFT   24 // Leaves top 24 bits of vaddr
+#define PT_SHIFT 12	  // Leaves top 36 bits of vaddr
+#define PD_SHIFT 24	  // Leaves top 24 bits of vaddr
 #define PDPT_SHIFT 36 // Leaves top 12 bits of vaddr
 
-#define PTRS_PER_PD   4096
-#define PTRS_PER_PT   4096
+#define PTRS_PER_PD 4096
+#define PTRS_PER_PT 4096
 #define PTRS_PER_PDPT 4096
 
 #define PT_MASK (PTRS_PER_PT - 1)
 #define PD_MASK (PTRS_PER_PD - 1)
 
-#define PT_INDEX(x)   (((x) >> PT_SHIFT) & PT_MASK)
-#define PD_INDEX(x)   (((x) >> PD_SHIFT) & PD_MASK)
+#define PT_INDEX(x) (((x) >> PT_SHIFT) & PT_MASK)
+#define PD_INDEX(x) (((x) >> PD_SHIFT) & PD_MASK)
 #define PDPT_INDEX(x) ((x) >> PDPT_SHIFT)
-
 
 typedef unsigned long vaddr_t;
 
 // These defines allow us to take advantage of the compiler's typechecking
 
 // Page directory pointer table entry (top-level)
-typedef struct {
+typedef struct
+{
 	uintptr_t pdp;
 } pdpt_entry_t;
 
 // Page directory entry (2nd-level)
-typedef struct {
+typedef struct
+{
 	uintptr_t pde;
 } pd_entry_t;
 
 // Page table entry (3rd-level)
-typedef struct {
+typedef struct
+{
+
 	unsigned int frame; // if valid bit == 1, physical frame holding vpage
-	off_t swap_offset;     // offset in swap file of vpage, if any
+	off_t swap_offset;	// offset in swap file of vpage, if any
 } pt_entry_t;
 
-#define INVALID_SWAP (off_t)-1
+#define INVALID_SWAP (off_t) - 1
 
-
-struct frame {
-	bool in_use;    // true if frame is allocated, false if frame is free
-	pt_entry_t *pte;// Pointer back to pagetable entry (pte) for page
-	                // stored in this frame
+struct frame
+{							  //Newly added Attributes
+	struct frame *last_frame; // pointer to previous frame
+	struct frame *new_frame;  // Pointer to next frame
+	//Original Attributes
+	bool in_use;	 // true if frame is allocated, false if frame is free
+	pt_entry_t *pte; // Pointer back to pagetable entry (pte) for page
+					 // stored in this frame
 };
 
 /* The coremap holds information about physical memory.
@@ -92,12 +97,10 @@ struct frame {
  */
 extern struct frame *coremap;
 
-
 void init_page_tables(void);
 char *find_physpage(vaddr_t vaddr, char type);
 void print_page_tables(void);
 void free_page_tables(void);
-
 
 // These may not need to do anything for some algorithms
 void rand_init(void);
@@ -125,6 +128,5 @@ int fifo_evict(void);
 int clock_evict(void);
 int lru_evict(void);
 int mru_evict(void);
-
 
 #endif /* __PAGETABLE_H__ */
