@@ -23,39 +23,13 @@ Counts:
 Number of Instruction pages: 32
 Number of Data pages: 961
 
-Instructions:
-  0x00108000,23492322
-  0x04c73000,253
-  0x04cc5000,401
-  0x04cc2000,596
-  0x04cc3000,47
-  0x04cc1000,168
-  0x04d49000,120
-  0x04c71000,440000
-  0x04c72000,538710
-  0x04d00000,10
-  0x04ce9000,140371
-  0x04d60000,79
-  0x04c89000,176
-  0x04c4f000,9
-  0x04cde000,61
-  0x04cdf000,19
-  0x04c8a000,64
-  0x04cb9000,116
-  0x04cbb000,49
-  0x04cbc000,89
-  0x04cac000,53
-  0x04d3d000,10
-  0x04cba000,4
-  0x04c8f000,27
-  0x04c8c000,132
-  0x04c8d000,761
-  0x04c82000,20
-  0x04c8e000,358
-  0x04c81000,370
-  0x04c80000,163
-  0x04d5d000,10
-  0x04cc6000,9
+Pages that are accessed the most:
+Instruction:  0x00108000, data: 0x0030a000
+
+Explanation:
+For instruction pages, we think 0x00108000 is where the instructions such as arithmetic operations are stored.
+For data pages, we think 0x0030a000 is where the most used variables such as matrix A, B, C are stored.
+
 -------Output for addr-matmul.ref---------
 Counts:
   Instructions 24283604
@@ -66,39 +40,13 @@ Counts:
 Number of Instruction pages: 32
 Number of Data pages: 961
 
-Instructions:
-  0x00108000,23300797
-  0x04c73000,136
-  0x04cc5000,401
-  0x04cc2000,596
-  0x04cc3000,47
-  0x04cc1000,168
-  0x04d49000,120
-  0x04c71000,440000
-  0x04c72000,538710
-  0x04d00000,10
-  0x04d60000,79
-  0x04c89000,176
-  0x04c4f000,9
-  0x04cde000,61
-  0x04cdf000,19
-  0x04c8a000,64
-  0x04cb9000,116
-  0x04cbb000,49
-  0x04cbc000,89
-  0x04cac000,53
-  0x04d3d000,10
-  0x04cba000,4
-  0x04ce9000,67
-  0x04c8f000,29
-  0x04c8c000,132
-  0x04c8d000,752
-  0x04c82000,20
-  0x04c8e000,361
-  0x04c81000,347
-  0x04c80000,163
-  0x04d5d000,10
-  0x04cc6000,9
+Pages that are accessed the most:
+Instruction:  0x00108000, data: 0x0030a000
+
+Explanation:
+For instruction pages, we think 0x00108000 is where the instructions such as arithmetic operations are stored.
+For data pages, we think 0x0030a000 is where the most used variables such as matrix A, B, C are stored.
+
 -------Output for addr-repeatloop.ref---------
 Counts:
   Instructions 662155
@@ -110,31 +58,13 @@ Counts:
 Number of Instruction pages: 23
 Number of Data pages: 76
 
+Pages that are accessed the most:
+Instruction:  0x00108000, data: multiple pages from 0x0402a000 to 0x04062000
 
-Instructions:
-  0x00108000,660080
-  0x04c73000,278
-  0x04cc5000,92
-  0x04cc2000,288
-  0x04cc3000,29
-  0x04cc1000,56
-  0x04d49000,35
-  0x04c71000,110
-  0x04c72000,135
-  0x04d60000,71
-  0x04c89000,186
-  0x04c4f000,4
-  0x04cde000,40
-  0x04c8a000,108
-  0x04cb9000,135
-  0x04c8b000,24
-  0x04c86000,190
-  0x04cbb000,49
-  0x04cbc000,163
-  0x04cac000,53
-  0x04d3d000,10
-  0x04cba000,4
-  0x04ce9000,15
+Explanation:
+For instruction pages, we think 0x00108000 is where the instructions such as arithmetic operations are stored.
+For data pages, we think multiple pages from 0x0402a000 to 0x04062000 are where the variables in data[] are stored. 
+And the way these pages are accessed for the same number of times is because of the for loop.
 
 -------Output for addr-simpleloop.ref---------
 Counts:
@@ -146,11 +76,9 @@ Counts:
 Number of Instruction pages: 7
 Number of Data pages: 2511
 
-Instructions:
-  0x00108000,120032
-  0x04cc5000,118
-  0x04cc2000,154
-  0x04cc3000,9
-  0x04cc1000,56
-  0x04d49000,40
-  0x04cc6000,3
+Pages that are accessed the most:
+Instruction:  0x00108000, data: 0x1fff000000
+
+Explanation:
+For instruction pages, we think 0x00108000 is where the instructions such as arithmetic operations are stored.
+For data pages, we think 0x1fff000000 is where the most used variable, ptr, is stored.
